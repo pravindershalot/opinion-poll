@@ -1,0 +1,183 @@
+<?php
+CREATE TABLE `js_libraries` (
+
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+
+  `choice` tinyint(4) NOT NULL DEFAULT '0',
+
+  `ts` timestamp NULL DEFAULT NULL,
+
+  PRIMARY KEY (`id`)
+
+);
+?>
+<?php
+
+class Opinion_poll_model {
+
+ private $db_handle; private $host = 'localhost'; private $db = 'opinion_poll';private $uid = 'root'; private $pwd = 'melody';
+
+    public function __construct() {
+
+        $this->db_handle = mysqli_connect($this->host, $this->uid, $this->pwd); //connect to MySQL server
+
+        if (!$this->db_handle) die("Unable to connect to MySQL: " . mysqli_error());
+
+        if (!mysqli_select_db($this->db_handle,$this->db)) die("Unable to select database: " . mysqli_error());
+
+    }
+
+    private function execute_query($sql_stmt) {
+
+        $result = mysqli_query($db_handle,$sql_stmt); //execute SQL statement
+
+        return !$result ? FALSE : TRUE;
+
+    }
+
+    public function select($sql_stmt) {
+
+        $result = mysqli_query($db_handle,$sql_stmt);
+
+        if (!$result) die("Database access failed: " . mysqli_error());
+
+        $rows = mysqli_num_rows($result);
+
+        $data = array();
+
+        if ($rows) {
+
+            while ($row = mysqli_fetch_array($result)) {
+
+                $data = $row;
+
+            }
+
+        }
+
+        return $data;
+
+    }
+
+    public function insert($sql_stmt) {
+
+        return $this->execute_query($sql_stmt);
+
+    }
+
+    public function __destruct(){
+
+        mysqli_close($this->db_handle);
+
+    }
+
+}
+
+?>
+<?php
+
+require 'opinion_poll_model.php';
+
+$model = new Opinion_poll_model();
+
+if (count($_POST) == 1) {
+
+    echo "<script>alert('You did not vote!');</script>";
+
+}
+
+if (count($_POST) > 1) {
+
+    $ts = date("Y-m-d H:i:s");
+
+    $option = $_POST['vote'][0];
+
+    $sql_stmt = "INSERT INTO js_libraries (`choice`,`ts`) VALUES ($option,'$ts')";
+
+    $model->insert($sql_stmt);
+
+    $sql_stmt = "SELECT COUNT(choice) choices_count FROM js_libraries;";
+
+    $choices_count = $model->select($sql_stmt);
+
+    $libraries = array("", "JQuery", "MooTools", "YUI Library", "Glow");
+
+    $table_rows = '';
+
+    for ($i = 1; $i < 5; $i++) {
+
+        $sql_stmt = "SELECT COUNT(choice) choices_count FROM js_libraries WHERE choice = $i;";
+
+        $result = $model->select($sql_stmt);
+
+        $table_rows .= "<tr><td>" . $ libraries [$i] . " Got:</td><td><b>" . $result[0] . "</b> votes</td></tr>";
+
+    }
+
+    require 'results.html.php';
+
+    exit;
+
+}
+
+require 'opinion.html.php';
+
+?>
+<html>
+
+    <head>
+
+        <title>JavaScript Libraries - Opinion Poll</title>
+
+    </head>
+
+    <body>
+
+        <h2>JavaScript Libraries - Opinion Poll</h2>
+
+        <p><b>What is your favorite JavaScript?</b></p>
+
+        <form method="POST" action="index.php">
+
+            <p> <input type="radio" name="vote" value="1" />JQuery
+
+                <br /><input type="radio" name="vote" value="2" />MooToolsl
+
+                <br /><input type="radio" name="vote" value="3" />YUI Library
+
+                <br /><input type="radio" name="vote" value="4" />Glow
+
+            </p>
+
+            <p><input type="submit" name="submitbutton" value="OK" /></p>
+
+        </form>
+
+    </body>
+
+</html>
+<html>
+
+    <head>
+
+        <title>JavaScript Libraries Poll Results</title>
+
+    </head>
+
+    <body>
+
+        <h2>Opinion Poll Results</h2>
+
+        <p><b>What is your favorite JavaScript Library?</b></p>
+
+        <p><b><?php echo $choices_count[0]; ?></b> people have thus far taken part in this poll:</p>
+
+        <p>
+<table>
+
+            <?php echo($table_rows); ?>
+
+        </table>
+</body>
+
+</html>
